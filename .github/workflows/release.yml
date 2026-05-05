@@ -48,7 +48,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: mac-build
-          path: dist/*.dmg
+          path: dist/*.zip
 
   release:
     needs: [build-windows, build-mac]
@@ -81,4 +81,4 @@ jobs:
           name: Release v${{ steps.pkg.outputs.version }}
           files: |
             dist/windows/*.exe
-            dist/mac/*.dmg
+            dist/mac/*.zip
