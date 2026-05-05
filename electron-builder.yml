@@ -20,11 +20,10 @@ asarUnpack:
   - node_modules/ffmpeg-static/**
 win:
   executableName: VideoPlayer
-nsis:
-  artifactName: ${name}-${version}-setup.${ext}
-  shortcutName: ${productName}
-  uninstallDisplayName: ${productName}
-  createDesktopShortcut: always
+  target:
+    - portable
+portable:
+  artifactName: ${name}-${version}.${ext}
 mac:
   entitlementsInherit: build/entitlements.mac.plist
   extendInfo:
