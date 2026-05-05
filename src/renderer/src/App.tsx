@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useMemo } from 'react'
+import { useEffect, useRef, useState, useCallback, useMemo } from 'react'
 import TagSidebar from './components/TagSidebar'
 import Playlist from './components/Playlist'
 import VideoPlayer from './components/VideoPlayer'
@@ -62,6 +62,13 @@ function App(): React.JSX.Element {
     return playlistOrder.filter((v) => v.tags.some((t) => activeTags.has(t)))
   }, [activeTags, playlistOrder])
 
+  // Keep a ref to the latest filtered list so handleVideoEnd always sees
+  // the current value without needing filteredVideos in its dependency array.
+  const filteredVideosRef = useRef<VideoEntry[]>(filteredVideos)
+  useEffect(() => {
+    filteredVideosRef.current = filteredVideos
+  }, [filteredVideos])
+
   const handleTagToggle = useCallback((tag: string, checked: boolean) => {
     setActiveTags((prev) => {
       const next = new Set(prev)
@@ -84,13 +91,16 @@ function App(): React.JSX.Element {
   }, [])
 
   // Advance to the next video in the filtered list when the current one ends.
+  // Reads the ref so it always uses the latest filtered list regardless of
+  // when the video-end event fires.
   const handleVideoEnd = useCallback(() => {
     setCurrentVideo((current) => {
       if (!current) return null
-      const idx = filteredVideos.findIndex((v) => v.filePath === current.filePath)
-      return filteredVideos[idx + 1] ?? null
+      const list = filteredVideosRef.current
+      const idx = list.findIndex((v) => v.filePath === current.filePath)
+      return list[idx + 1] ?? null
     })
-  }, [filteredVideos])
+  }, [])
 
   return (
     <div className="app-layout">
