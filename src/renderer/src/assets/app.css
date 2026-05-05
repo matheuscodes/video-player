@@ -69,7 +69,7 @@ body {
   margin-bottom: 12px;
 }
 
-/* ── Date range bar ── */
+/* ── Date range bar (slider) ── */
 .date-range-bar {
   display: flex;
   align-items: center;
@@ -86,35 +86,93 @@ body {
   white-space: nowrap;
 }
 
-.date-range-inputs {
+/* Wrapper that stacks the date labels above the slider track */
+.date-slider-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  width: 260px;
+}
+
+.date-slider-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: #9090c0;
+  user-select: none;
+}
+
+/* Container that positions all slider layers on top of each other */
+.date-slider-track {
+  position: relative;
+  height: 22px;
   display: flex;
   align-items: center;
-  gap: 6px;
 }
 
-.date-range-sep {
-  color: #5a5a7a;
-  font-size: 14px;
+/* Unselected background track */
+.date-slider-bg {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: #2e2e48;
+  border-radius: 2px;
+  pointer-events: none;
 }
 
-.date-input {
-  background: #12121c;
-  color: #c0c0e0;
-  border: 1px solid #2e2e48;
-  border-radius: 6px;
-  padding: 3px 8px;
-  font-size: 12px;
-  cursor: pointer;
+/* Highlighted range between the two thumbs */
+.date-slider-fill {
+  position: absolute;
+  height: 4px;
+  background: #a78bfa;
+  border-radius: 2px;
+  pointer-events: none;
+}
+
+/* Both range inputs sit exactly on top of each other */
+.date-slider-input {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  height: 4px;
+  background: transparent;
+  -webkit-appearance: none;
+  appearance: none;
   outline: none;
-  color-scheme: dark;
+  pointer-events: none; /* thumbs re-enable via pointer-events: all */
 }
 
-.date-input:hover {
-  border-color: #4a4a6a;
+.date-slider-input::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #a78bfa;
+  border: 2px solid #0f0f14;
+  cursor: pointer;
+  pointer-events: all;
+  transition: background 0.15s;
 }
 
-.date-input:focus {
-  border-color: #a78bfa;
+.date-slider-input::-webkit-slider-thumb:hover {
+  background: #c4b5fd;
+}
+
+.date-slider-input::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #a78bfa;
+  border: 2px solid #0f0f14;
+  cursor: pointer;
+  pointer-events: all;
+  transition: background 0.15s;
+}
+
+.date-slider-input::-moz-range-thumb:hover {
+  background: #c4b5fd;
 }
 
 .tag-sidebar {

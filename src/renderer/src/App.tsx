@@ -33,10 +33,13 @@ function App(): React.JSX.Element {
   const [isLoading, setIsLoading] = useState(true)
 
   // Date range filter — stored as HTML input format (YYYY-MM-DD)
-  const [minDate, setMinDate] = useState<string>('')
-  const [maxDate, setMaxDate] = useState<string>('')
   const [startDate, setStartDate] = useState<string>('')
   const [endDate, setEndDate] = useState<string>('')
+
+  // Sorted unique dates from all videos (YYYY-MM-DD), used to drive the slider
+  const allDates = useMemo(() => {
+    return Array.from(new Set(allVideos.map((v) => videoDateToInput(v.date)))).sort()
+  }, [allVideos])
 
   // Load videos on mount
   useEffect(() => {
@@ -68,12 +71,8 @@ function App(): React.JSX.Element {
         // Initialise date range from the oldest/newest video
         if (videosWithUrls.length > 0) {
           const dates = videosWithUrls.map((v) => videoDateToInput(v.date)).sort()
-          const earliest = dates[0]
-          const latest = dates[dates.length - 1]
-          setMinDate(earliest)
-          setMaxDate(latest)
-          setStartDate(earliest)
-          setEndDate(latest)
+          setStartDate(dates[0])
+          setEndDate(dates[dates.length - 1])
         }
       } catch (err) {
         console.error('Failed to load videos:', err)
@@ -147,10 +146,9 @@ function App(): React.JSX.Element {
     <div className="app-layout">
       <header className="app-header">
         <h1>🎬 Video Player</h1>
-        {!isLoading && minDate && maxDate && (
+        {!isLoading && allDates.length > 1 && (
           <DateRangeBar
-            minDate={minDate}
-            maxDate={maxDate}
+            allDates={allDates}
             startDate={startDate}
             endDate={endDate}
             onStartDateChange={setStartDate}
