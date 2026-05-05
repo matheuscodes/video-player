@@ -2,7 +2,9 @@ import { app, shell, BrowserWindow, ipcMain, protocol, net } from 'electron'
 import { join, extname, dirname, resolve, sep } from 'path'
 import { readdirSync, existsSync } from 'fs'
 import { pathToFileURL } from 'url'
+import { spawn } from 'child_process'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
+import ffmpegStaticPath from 'ffmpeg-static'
 import icon from '../../resources/icon.png?asset'
 
 // Must be called before app is ready. Marks the scheme as secure so the
@@ -23,6 +25,84 @@ function resolveVideosDir(): string {
   }
   // In production the executable sits in the install root; Videos/ lives beside it
   return join(dirname(process.execPath), 'Videos')
+}
+
+/**
+ * Return the path to the ffmpeg binary.
+ * In a packaged app the binary lives in app.asar.unpacked (set via asarUnpack in
+ * electron-builder.yml). We fix up the path so the OS can actually execute it.
+ */
+function resolveFfmpegPath(): string {
+  const raw = ffmpegStaticPath ?? ''
+  return raw.replace('app.asar', 'app.asar.unpacked')
+}
+
+/**
+ * Transcode a video file on-the-fly to a fragmented H.264/AAC MP4 stream that
+ * Chromium can decode regardless of the original codec (H.265, ProRes, etc.).
+ * Returns a streaming Response so the renderer can start playing immediately.
+ */
+function transcodeToFmp4(filePath: string): Response {
+  if (!existsSync(filePath)) {
+    return new Response('Not Found', { status: 404 })
+  }
+
+  const ffmpegBin = resolveFfmpegPath()
+  const proc = spawn(ffmpegBin, [
+    '-i', filePath,
+    '-c:v', 'libx264',
+    '-c:a', 'aac',
+    '-preset', 'ultrafast',
+    '-f', 'mp4',
+    // frag_keyframe: new MP4 fragment at every keyframe → seekable stream
+    // empty_moov: write a placeholder moov at the start so playback begins immediately
+    // default_base_moof: improves compatibility with Chromium's MP4 demuxer
+    '-movflags', 'frag_keyframe+empty_moov+default_base_moof',
+    'pipe:1'
+  ])
+
+  proc.stderr.on('data', (chunk: Buffer) => {
+    // Log ffmpeg progress/errors to the main-process console (visible in terminal)
+    console.log('[ffmpeg]', chunk.toString())
+  })
+
+  const stream = new ReadableStream<Uint8Array>({
+    start(controller) {
+      let closed = false
+
+      proc.stdout.on('data', (chunk: Buffer) => {
+        controller.enqueue(new Uint8Array(chunk))
+      })
+      proc.stdout.on('end', () => {
+        closed = true
+        controller.close()
+      })
+      proc.on('exit', (code) => {
+        if (!closed && code !== null && code !== 0) {
+          closed = true
+          controller.error(new Error(`ffmpeg exited with code ${code}`))
+        }
+      })
+      proc.on('error', (err) => {
+        if (!closed) {
+          closed = true
+          console.error('[ffmpeg] spawn error:', err)
+          controller.error(err)
+        }
+      })
+    },
+    cancel() {
+      // Try graceful shutdown first; force-kill if the process lingers
+      proc.kill('SIGTERM')
+      setTimeout(() => {
+        if (!proc.killed) proc.kill('SIGKILL')
+      }, 2000)
+    }
+  })
+
+  return new Response(stream, {
+    headers: { 'Content-Type': 'video/mp4' }
+  })
 }
 
 export interface VideoEntry {
@@ -96,15 +176,20 @@ app.whenReady().then(() => {
   })
 
   // Serve local video files via a dedicated protocol.
-  // protocol.handle + net.fetch correctly forwards HTTP Range requests so
-  // the <video> element can seek inside files (replaces the removed
-  // protocol.registerFileProtocol API that was dropped in Electron 25).
+  // MP4 files are served directly via net.fetch (supports Range requests / seeking).
+  // MOV files are transcoded on-the-fly to fragmented H.264 MP4 via ffmpeg so that
+  // files encoded with unsupported codecs (H.265/HEVC, Apple ProRes, etc.) can play
+  // in Chromium without any modification to the original files.
   const videosDir = resolveVideosDir()
   protocol.handle('localvideo', (request) => {
     const filePath = resolve(decodeURIComponent(request.url.slice('localvideo://'.length)))
     // Reject paths that escape the Videos directory (path traversal guard)
     if (!filePath.startsWith(videosDir + sep) && filePath !== videosDir) {
       return new Response('Forbidden', { status: 403 })
+    }
+    // Transcode MOV files on-the-fly; serve MP4 files directly
+    if (extname(filePath).toLowerCase() === '.mov') {
+      return transcodeToFmp4(filePath)
     }
     return net.fetch(pathToFileURL(filePath).toString(), { bypassCustomProtocolHandlers: true })
   })
