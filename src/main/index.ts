@@ -1,8 +1,19 @@
-import { app, shell, BrowserWindow, ipcMain, protocol } from 'electron'
-import { join, extname, dirname } from 'path'
+import { app, shell, BrowserWindow, ipcMain, protocol, net } from 'electron'
+import { join, extname, dirname, resolve, sep } from 'path'
 import { readdirSync, existsSync } from 'fs'
+import { pathToFileURL } from 'url'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
+
+// Must be called before app is ready. Marks the scheme as secure so the
+// renderer treats it like https:// (CSP, CORS, autoplay, etc.) and enables
+// streaming so the browser can send Range requests for video seeking.
+protocol.registerSchemesAsPrivileged([
+  {
+    scheme: 'localvideo',
+    privileges: { secure: true, supportFetchAPI: true, corsEnabled: true, stream: true }
+  }
+])
 
 /** Locate the Videos/ folder next to the app executable (or next to the project root in dev). */
 function resolveVideosDir(): string {
@@ -83,12 +94,18 @@ app.whenReady().then(() => {
     optimizer.watchWindowShortcuts(window)
   })
 
-  // Serve local video files via a dedicated protocol to avoid cross-origin issues
-  // without having to disable webSecurity globally.
-  protocol.registerFileProtocol('localvideo', (request, callback) => {
-    // Strip the scheme (localvideo://) and decode the path
-    const filePath = decodeURIComponent(request.url.slice('localvideo://'.length))
-    callback({ path: filePath })
+  // Serve local video files via a dedicated protocol.
+  // protocol.handle + net.fetch correctly forwards HTTP Range requests so
+  // the <video> element can seek inside files (replaces the removed
+  // protocol.registerFileProtocol API that was dropped in Electron 25).
+  const videosDir = resolveVideosDir()
+  protocol.handle('localvideo', (request) => {
+    const filePath = resolve(decodeURIComponent(request.url.slice('localvideo://'.length)))
+    // Reject paths that escape the Videos directory (path traversal guard)
+    if (!filePath.startsWith(videosDir + sep) && filePath !== videosDir) {
+      return new Response('Forbidden', { status: 403 })
+    }
+    return net.fetch(pathToFileURL(filePath).toString(), { bypassCustomProtocolHandlers: true })
   })
 
   // IPC: list all video files from the Videos/ folder
