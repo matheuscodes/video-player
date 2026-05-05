@@ -31,6 +31,7 @@ body {
 .app-header {
   display: flex;
   align-items: center;
+  gap: 20px;
   padding: 10px 20px;
   background: #1a1a24;
   border-bottom: 1px solid #2a2a3a;
@@ -68,7 +69,54 @@ body {
   margin-bottom: 12px;
 }
 
-/* ── Tag sidebar ── */
+/* ── Date range bar ── */
+.date-range-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
+}
+
+.date-range-label {
+  font-size: 12px;
+  color: #7c7c9e;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  white-space: nowrap;
+}
+
+.date-range-inputs {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.date-range-sep {
+  color: #5a5a7a;
+  font-size: 14px;
+}
+
+.date-input {
+  background: #12121c;
+  color: #c0c0e0;
+  border: 1px solid #2e2e48;
+  border-radius: 6px;
+  padding: 3px 8px;
+  font-size: 12px;
+  cursor: pointer;
+  outline: none;
+  color-scheme: dark;
+}
+
+.date-input:hover {
+  border-color: #4a4a6a;
+}
+
+.date-input:focus {
+  border-color: #a78bfa;
+}
+
 .tag-sidebar {
   display: flex;
   flex-direction: column;
