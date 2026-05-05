@@ -66,16 +66,20 @@ function transcodeToFmp4(filePath: string): Response {
     console.log('[ffmpeg]', chunk.toString())
   })
 
+  // Shared flag accessible from both start() and cancel() so that cancel()
+  // can prevent further enqueue/close/error calls after the stream is cancelled.
+  let closed = false
+
   const stream = new ReadableStream<Uint8Array>({
     start(controller) {
-      let closed = false
-
       proc.stdout.on('data', (chunk: Buffer) => {
-        controller.enqueue(new Uint8Array(chunk))
+        if (!closed) controller.enqueue(new Uint8Array(chunk))
       })
       proc.stdout.on('end', () => {
-        closed = true
-        controller.close()
+        if (!closed) {
+          closed = true
+          controller.close()
+        }
       })
       proc.on('exit', (code) => {
         if (!closed && code !== null && code !== 0) {
@@ -92,6 +96,8 @@ function transcodeToFmp4(filePath: string): Response {
       })
     },
     cancel() {
+      // Mark closed first so in-flight stdout data events don't touch the controller
+      closed = true
       // Try graceful shutdown first; force-kill if the process lingers
       proc.kill('SIGTERM')
       setTimeout(() => {
