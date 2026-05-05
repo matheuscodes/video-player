@@ -9,21 +9,17 @@ files:
   - '!{.eslintcache,eslint.config.mjs,.prettierignore,.prettierrc.yaml,dev-app-update.yml,CHANGELOG.md}'
   - '!{.env,.env.*,.npmrc,pnpm-lock.yaml}'
   - '!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}'
-extraResources:
-  - from: Videos/
-    to: ../Videos
-    filter:
-      - '**/*.mp4'
-      - '**/*.mov'
 asarUnpack:
   - resources/**
   - node_modules/ffmpeg-static/**
 win:
   executableName: VideoPlayer
   target:
-    - portable
-portable:
-  artifactName: ${name}-${version}.${ext}
+    - nsis
+nsis:
+  artifactName: ${name}-${version}-setup.${ext}
+  oneClick: false
+  allowToChangeInstallationDirectory: true
 mac:
   entitlementsInherit: build/entitlements.mac.plist
   extendInfo:
