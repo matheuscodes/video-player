@@ -21,17 +21,24 @@ export interface VideoEntry {
   tags: string[]
 }
 
-/** Parse a video filename of the form "YYYY.MM.DD # tag1, tag2, tag3" */
+/**
+ * Parse a video filename. Accepted formats (extension .mp4 or .mov):
+ *   YYYY.MM.DD # tag1, tag2, tag3
+ *   YYYY.MM.DD N tag1, tag2, tag3   (N = optional integer sequence number)
+ *   YYYY.MM.DD tag1, tag2, tag3
+ */
 function parseVideoFilename(filename: string): VideoEntry | null {
   const ext = extname(filename).toLowerCase()
   if (ext !== '.mp4' && ext !== '.mov') return null
 
   const nameWithoutExt = filename.slice(0, -ext.length)
-  const separatorIdx = nameWithoutExt.indexOf(' # ')
-  if (separatorIdx === -1) return null
 
-  const date = nameWithoutExt.slice(0, separatorIdx).trim()
-  const tagsStr = nameWithoutExt.slice(separatorIdx + 3).trim()
+  // Match: date  then  (` # ` | ` <digits> ` | ` `)  then  tags (must start with non-whitespace)
+  const match = nameWithoutExt.match(/^(\d{4}\.\d{2}\.\d{2})(?:\s+#\s+|\s+\d+\s+|\s+)(\S.*)$/)
+  if (!match) return null
+
+  const date = match[1]
+  const tagsStr = match[2].trim()
   const tags = tagsStr
     .split(',')
     .map((t) => t.trim())

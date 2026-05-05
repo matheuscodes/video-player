@@ -91,14 +91,20 @@ function App(): React.JSX.Element {
   }, [])
 
   // Advance to the next video in the filtered list when the current one ends.
+  // Wraps around from the last video back to the first.
+  // If the current video is no longer in the filtered list (e.g. filtered out),
+  // start from the beginning.
   // Reads the ref so it always uses the latest filtered list regardless of
   // when the video-end event fires.
   const handleVideoEnd = useCallback(() => {
     setCurrentVideo((current) => {
-      if (!current) return null
       const list = filteredVideosRef.current
+      if (list.length === 0) return null
+      if (!current) return list[0]
       const idx = list.findIndex((v) => v.filePath === current.filePath)
-      return list[idx + 1] ?? null
+      // idx === -1 means current video was filtered out; restart from first
+      if (idx === -1) return list[0]
+      return list[(idx + 1) % list.length]
     })
   }, [])
 
