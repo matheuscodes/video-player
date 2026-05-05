@@ -1,12 +1,10 @@
-import { useRef, useEffect } from 'react'
+import { useRef, useEffect, useCallback } from 'react'
 import type { VideoEntry } from '../App'
 
 interface VideoPlayerProps {
   video: VideoEntry | null
   onVideoEnd: () => void
 }
-
-const SKIP_SECONDS = 10
 
 function VideoPlayer({ video, onVideoEnd }: VideoPlayerProps): React.JSX.Element {
   const videoRef = useRef<HTMLVideoElement>(null)
@@ -27,11 +25,9 @@ function VideoPlayer({ video, onVideoEnd }: VideoPlayerProps): React.JSX.Element
     }
   }, [video])
 
-  const handleSkipForward = (): void => {
-    const el = videoRef.current
-    if (!el) return
-    el.currentTime = Math.min(el.currentTime + SKIP_SECONDS, el.duration || el.currentTime)
-  }
+  const handleSkipNext = useCallback((): void => {
+    onVideoEnd()
+  }, [onVideoEnd])
 
   const handleFullscreen = (): void => {
     const el = videoRef.current
@@ -40,6 +36,20 @@ function VideoPlayer({ video, onVideoEnd }: VideoPlayerProps): React.JSX.Element
       el.requestFullscreen()
     }
   }
+
+  // Trigger "skip to next" when the spacebar is pressed anywhere on the page,
+  // unless focus is inside an input, textarea, or button (so form controls still work).
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent): void => {
+      if (e.code !== 'Space') return
+      const tag = (e.target as HTMLElement).tagName.toLowerCase()
+      if (tag === 'input' || tag === 'textarea' || tag === 'select') return
+      e.preventDefault()
+      handleSkipNext()
+    }
+    document.addEventListener('keydown', onKeyDown)
+    return () => document.removeEventListener('keydown', onKeyDown)
+  }, [handleSkipNext])
 
   return (
     <div className="video-player">
@@ -67,8 +77,12 @@ function VideoPlayer({ video, onVideoEnd }: VideoPlayerProps): React.JSX.Element
           </div>
 
           <div className="video-controls">
-            <button className="btn-control" onClick={handleSkipForward} title="Skip forward 10s">
-              ⏩ +{SKIP_SECONDS}s
+            <button
+              className="btn-control"
+              onClick={handleSkipNext}
+              title="Skip to next video (Space)"
+            >
+              ⏭ Next
             </button>
             <button className="btn-control" onClick={handleFullscreen} title="Full screen">
               ⛶ Fullscreen
