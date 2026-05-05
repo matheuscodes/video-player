@@ -20,23 +20,34 @@ Built with **Electron**, **React**, and **TypeScript** using the **electron-vite
 ## Filename Convention
 
 Place your video files inside the `Videos/` folder.  
-Name them using the format:
+All of the following formats are supported (extension `.mp4` or `.mov`):
 
 ```
-YYYY.MM.DD # tag1, tag two, tag3.mp4
-YYYY.MM.DD # tag1, tag two, tag3.mov
+YYYY.MM.DD # tag1, tag two, tag3
+YYYY.MM.DD N tag1, tag two, tag3    (N = integer sequence number, e.g. 1, 2, 3)
+YYYY.MM.DD Na tag1, tag two, tag3   (Na = alphanumeric sequence, e.g. 4a, 4b)
+YYYY.MM.DD N                        (sequence only, no tags)
+YYYY.MM.DD tag1, tag two, tag3      (no sequence number)
+YYYY.MM.DD                          (date only, no tags)
 ```
 
 **Examples:**
 ```
 2024.07.04 # vacation, fireworks, summer.mp4
 2024.12.25 # family, christmas, celebration.mov
+2024.04.03 1 hiking, mountains.mp4
+2024.04.03 2 hiking, mountains.mp4
+2024.04.03 4a standing.mov
+2024.04.03 4b standing.mov
+2024.04.03 5.mov
+2024.04.03.mp4
 ```
 
 - The date part (`YYYY.MM.DD`) is used for sorting.
 - Tags are separated by `, ` (comma + space).
 - Tags can be multiple words.
-- Files not matching this format are ignored.
+- Files with no tags are labeled **"no tag"** in the sidebar.
+- Files not starting with a valid date are ignored.
 
 ---
 

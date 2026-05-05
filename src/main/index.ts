@@ -120,9 +120,18 @@ export interface VideoEntry {
 
 /**
  * Parse a video filename. Accepted formats (extension .mp4 or .mov):
- *   YYYY.MM.DD # tag1, tag2, tag3
- *   YYYY.MM.DD N tag1, tag2, tag3   (N = optional integer sequence number)
- *   YYYY.MM.DD tag1, tag2, tag3
+ *   YYYY.MM.DD                          — date only (no tags → labelled "no tag")
+ *   YYYY.MM.DD # tag1, tag2             — hash separator
+ *   YYYY.MM.DD N                        — sequence number only (→ "no tag")
+ *   YYYY.MM.DD Na                       — alphanumeric seq, e.g. 4a, 4b (→ "no tag")
+ *   YYYY.MM.DD N tag1, tag2             — sequence + tags
+ *   YYYY.MM.DD Na tag1, tag2            — alphanumeric seq + tags
+ *   YYYY.MM.DD tag1, tag2               — tags only, no separator
+ *
+ * Sequence tokens (stripped before tag parsing): `#`, or a token matching
+ * `\d+[a-zA-Z]?` (digits with an optional trailing letter) that appears as a
+ * standalone word immediately after the date.
+ * Videos with no tags receive the synthetic tag "no tag".
  */
 function parseVideoFilename(filename: string): VideoEntry | null {
   const ext = extname(filename).toLowerCase()
@@ -130,16 +139,31 @@ function parseVideoFilename(filename: string): VideoEntry | null {
 
   const nameWithoutExt = filename.slice(0, -ext.length)
 
-  // Match: date  then  (` # ` | ` <digits> ` | ` `)  then  tags (must start with non-whitespace)
-  const match = nameWithoutExt.match(/^(\d{4}\.\d{2}\.\d{2})(?:\s+#\s+|\s+\d+\s+|\s+)(\S.*)$/)
-  if (!match) return null
+  // File must start with a date (YYYY.MM.DD)
+  const dateMatch = nameWithoutExt.match(/^(\d{4}\.\d{2}\.\d{2})(.*)?$/)
+  if (!dateMatch) return null
 
-  const date = match[1]
-  const tagsStr = match[2].trim()
-  const tags = tagsStr
+  const date = dateMatch[1]
+  let rest = (dateMatch[2] ?? '').trim()
+
+  // Strip an optional sequence-number prefix:
+  //   `#`  (with surrounding whitespace), OR
+  //   a standalone alphanumeric token like 1, 2, 4a, 4b
+  //   (only matched when it is the entire first "word" — digits + at most one letter)
+  const seqMatch = rest.match(/^(?:#|(\d+[a-zA-Z]?))(?:\s+|$)/)
+  if (seqMatch) {
+    rest = rest.slice(seqMatch[0].length).trim()
+  }
+
+  const tags = rest
     .split(',')
     .map((t) => t.trim())
     .filter((t) => t.length > 0)
+
+  // Videos without any tags get a synthetic "no tag" label
+  if (tags.length === 0) {
+    tags.push('no tag')
+  }
 
   return { filename, filePath: '', date, tags }
 }
