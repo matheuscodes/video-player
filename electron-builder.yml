@@ -15,11 +15,9 @@ asarUnpack:
 win:
   executableName: VideoPlayer
   target:
-    - nsis
-nsis:
-  artifactName: ${name}-${version}-setup.${ext}
-  oneClick: false
-  allowToChangeInstallationDirectory: true
+    - portable
+portable:
+  artifactName: ${name}-${version}.${ext}
 mac:
   entitlementsInherit: build/entitlements.mac.plist
   extendInfo:
