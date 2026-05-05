@@ -86,20 +86,53 @@ body {
   white-space: nowrap;
 }
 
-/* Wrapper that stacks the date labels above the slider track */
+/* Wrapper that stacks the manual inputs and slider track */
 .date-slider-wrapper {
   display: flex;
   flex-direction: column;
-  gap: 3px;
-  width: 260px;
+  gap: 5px;
+  width: 280px;
 }
 
-.date-slider-labels {
+/* Row with the two date text inputs */
+.date-inputs-row {
   display: flex;
-  justify-content: space-between;
+  align-items: center;
+  gap: 6px;
+}
+
+.date-input {
+  flex: 1;
+  background: #1a1a2e;
+  border: 1px solid #3a3a5c;
+  border-radius: 4px;
+  color: #c0c0e8;
   font-size: 11px;
-  color: #9090c0;
-  user-select: none;
+  padding: 2px 4px;
+  outline: none;
+  min-width: 0;
+  cursor: pointer;
+}
+
+.date-input:hover {
+  border-color: #a78bfa;
+}
+
+.date-input:focus {
+  border-color: #a78bfa;
+  box-shadow: 0 0 0 1px #a78bfa55;
+}
+
+/* Chromium-specific: style the calendar icon and inner text */
+.date-input::-webkit-calendar-picker-indicator {
+  filter: invert(0.7);
+  cursor: pointer;
+}
+
+.date-range-sep {
+  color: #7c7c9e;
+  font-size: 12px;
+  flex-shrink: 0;
 }
 
 /* Container that positions all slider layers on top of each other */
@@ -174,6 +207,7 @@ body {
 .date-slider-input::-moz-range-thumb:hover {
   background: #c4b5fd;
 }
+
 
 .tag-sidebar {
   display: flex;

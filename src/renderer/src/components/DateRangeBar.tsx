@@ -8,6 +8,34 @@ interface DateRangeBarProps {
   onEndDateChange: (date: string) => void
 }
 
+/**
+ * Find the last date in `allDates` (sorted ascending) that is <= `target`,
+ * falling back to allDates[0] when target precedes every date.
+ * Returns an empty string for an empty array.
+ */
+function floorDate(allDates: string[], target: string): string {
+  if (allDates.length === 0) return ''
+  let best = allDates[0]
+  for (const d of allDates) {
+    if (d <= target) best = d
+    else break
+  }
+  return best
+}
+
+/**
+ * Find the first date in `allDates` (sorted ascending) that is >= `target`,
+ * falling back to the last element when target is beyond every date.
+ * Returns an empty string for an empty array.
+ */
+function ceilDate(allDates: string[], target: string): string {
+  if (allDates.length === 0) return ''
+  for (const d of allDates) {
+    if (d >= target) return d
+  }
+  return allDates[allDates.length - 1]
+}
+
 function DateRangeBar({
   allDates,
   startDate,
@@ -31,27 +59,65 @@ function DateRangeBar({
   const leftPct = max > 0 ? (startIdx / max) * 100 : 0
   const rightPct = max > 0 ? (endIdx / max) * 100 : 100
 
-  const handleStartChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
+  // Slider handlers — snap to allDates entries, respect cross-clamp
+  const handleStartSlider = (e: React.ChangeEvent<HTMLInputElement>): void => {
     const idx = Math.min(Number(e.target.value), endIdx)
     onStartDateChange(allDates[idx])
   }
 
-  const handleEndChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
+  const handleEndSlider = (e: React.ChangeEvent<HTMLInputElement>): void => {
     const idx = Math.max(Number(e.target.value), startIdx)
     onEndDateChange(allDates[idx])
   }
 
-  /** Format YYYY-MM-DD → YYYY.MM.DD for display */
-  const fmt = (d: string): string => d.replace(/-/g, '.')
+  // Text input handlers — snap typed date to nearest available date
+  const handleStartInput = (e: React.ChangeEvent<HTMLInputElement>): void => {
+    const typed = e.target.value
+    if (!typed) return
+    const snapped = floorDate(allDates, typed)
+    if (!snapped) return
+    // Ensure start doesn't exceed end
+    onStartDateChange(snapped <= endDate ? snapped : endDate)
+  }
+
+  const handleEndInput = (e: React.ChangeEvent<HTMLInputElement>): void => {
+    const typed = e.target.value
+    if (!typed) return
+    const snapped = ceilDate(allDates, typed)
+    if (!snapped) return
+    // Ensure end doesn't precede start
+    onEndDateChange(snapped >= startDate ? snapped : startDate)
+  }
 
   return (
     <div className="date-range-bar">
       <span className="date-range-label">Date range</span>
       <div className="date-slider-wrapper">
-        <div className="date-slider-labels">
-          <span>{fmt(startDate)}</span>
-          <span>{fmt(endDate)}</span>
+        {/* Manual date inputs row */}
+        <div className="date-inputs-row">
+          <input
+            type="date"
+            className="date-input"
+            value={startDate}
+            min={allDates[0]}
+            max={endDate}
+            onChange={handleStartInput}
+            aria-label="Start date"
+            title="Start date"
+          />
+          <span className="date-range-sep">–</span>
+          <input
+            type="date"
+            className="date-input"
+            value={endDate}
+            min={startDate}
+            max={allDates[max]}
+            onChange={handleEndInput}
+            aria-label="End date"
+            title="End date"
+          />
         </div>
+        {/* Dual-handle range slider */}
         <div className="date-slider-track">
           {/* Background track */}
           <div className="date-slider-bg" />
@@ -70,8 +136,8 @@ function DateRangeBar({
             min={0}
             max={max}
             value={startIdx}
-            onChange={handleStartChange}
-            aria-label="Start date"
+            onChange={handleStartSlider}
+            aria-label="Start date slider"
             style={{ zIndex: startIdx >= endIdx ? 5 : 3 }}
           />
           {/* Right / end thumb — always at z-index 4 so it normally sits
@@ -82,8 +148,8 @@ function DateRangeBar({
             min={0}
             max={max}
             value={endIdx}
-            onChange={handleEndChange}
-            aria-label="End date"
+            onChange={handleEndSlider}
+            aria-label="End date slider"
             style={{ zIndex: 4 }}
           />
         </div>
