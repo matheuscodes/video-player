@@ -230,6 +230,31 @@ body {
   background: #060610;
   border-radius: 10px;
   overflow: hidden;
+  position: relative;
+}
+
+.video-error-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  background: rgba(6, 6, 16, 0.92);
+  padding: 24px;
+  text-align: center;
+}
+
+.video-error-icon {
+  font-size: 40px;
+}
+
+.video-error-overlay p {
+  font-size: 13px;
+  color: #d0a0a0;
+  max-width: 360px;
+  line-height: 1.5;
 }
 
 .video-element {
