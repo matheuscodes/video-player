@@ -9,12 +9,6 @@ files:
   - '!{.eslintcache,eslint.config.mjs,.prettierignore,.prettierrc.yaml,dev-app-update.yml,CHANGELOG.md}'
   - '!{.env,.env.*,.npmrc,pnpm-lock.yaml}'
   - '!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}'
-extraResources:
-  - from: Videos/
-    to: ../Videos
-    filter:
-      - '**/*.mp4'
-      - '**/*.mov'
 asarUnpack:
   - resources/**
   - node_modules/ffmpeg-static/**
