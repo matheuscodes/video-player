@@ -174,7 +174,7 @@ Copy the entire folder to a USB stick and add your `Videos/` folder next to the 
 
 ### Recommended: zip distribution (Windows)
 
-1. Run `npm run build:win` on Windows (or cross-compile on Linux/macOS with Wine).
+1. Run `npm run build:win` on Windows.
 2. Distribute `VideoPlayer-1.0.0-win.zip`.
 3. The recipient:
    - Extracts the zip → gets a `VideoPlayer-win32-x64/` (or similar) folder.
