@@ -137,13 +137,21 @@ npm run typecheck
 npm run build
 ```
 
-### Package as a Windows installer
+### Package for Windows
 
 ```bash
 npm run build:win
 ```
 
-The `.exe` setup installer is created in `dist/`.
+This produces two artifacts in `dist/`:
+
+| File | What it is | Recommended? |
+|---|---|---|
+| `VideoPlayer-1.0.0-win.zip` | Zip archive of the full app folder | ✅ **Yes – use this** |
+| `VideoPlayer-1.0.0.exe` | NSIS self-extracting portable exe | ⚠️ May be flagged by AV |
+
+**Use the zip**: extract it anywhere, place a `Videos/` folder next to `VideoPlayer.exe`, and double-click to run.  
+Windows Defender and other AV tools are much less likely to flag a plain exe than an NSIS self-extractor.
 
 ### Package for macOS
 
@@ -151,25 +159,47 @@ The `.exe` setup installer is created in `dist/`.
 npm run build:mac
 ```
 
-### Portable unpacked folder (for USB sticks)
+### Portable unpacked folder (for USB sticks / fastest start)
 
 ```bash
 npm run build:unpack
 ```
 
-This produces an unpacked app directory in `dist/win-unpacked/` (or the equivalent for your OS) that can be copied to a USB stick without running an installer.  
-The `Videos/` folder is placed next to the executable, so it travels with the app.
+This produces an unpacked app directory in `dist/win-unpacked/` (or the equivalent for your OS).  
+Copy the entire folder to a USB stick and add your `Videos/` folder next to the exe.
 
 ---
 
-## USB Stick Deployment
+## Distribution & Running
+
+### Recommended: zip distribution (Windows)
+
+1. Run `npm run build:win` on Windows (or cross-compile on Linux/macOS with Wine).
+2. Distribute `VideoPlayer-1.0.0-win.zip`.
+3. The recipient:
+   - Extracts the zip → gets a `VideoPlayer-win32-x64/` (or similar) folder.
+   - Creates a `Videos/` folder **inside that folder**, next to `VideoPlayer.exe`.
+   - Copies video files there (named according to the convention below).
+   - Double-clicks `VideoPlayer.exe`.
+
+```
+VideoPlayer-win32-x64/
+├── VideoPlayer.exe   ← run this
+├── Videos/           ← put your .mp4 / .mov files here
+│   ├── 2024.07.04 # vacation, fireworks.mp4
+│   └── 2024.12.25 # family, christmas.mov
+└── resources/  (Electron internals — do not modify)
+```
+
+### USB Stick Deployment (unpacked)
 
 1. Run `npm run build:unpack` on a Windows machine.
 2. Copy the entire `dist/win-unpacked/` folder to the USB stick.
-3. The folder already contains a `Videos/` directory — copy your video files there.
-4. Double-click `VideoPlayer.exe` to launch the app directly from the USB stick (no installation required).
+3. Add a `Videos/` directory inside that folder and copy your video files there.
+4. Double-click `VideoPlayer.exe` to launch directly from the USB stick.
 
-> **Note:** Windows may show a SmartScreen warning for unsigned executables. Click *More info -> Run anyway*.
+> **Note:** Windows SmartScreen may warn about unsigned executables.  
+> Click *More info → Run anyway*. The zip-based distribution triggers this far less often than the self-extracting portable exe.
 
 ---
 

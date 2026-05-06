@@ -15,7 +15,12 @@ asarUnpack:
 win:
   executableName: VideoPlayer
   target:
-    - portable
+    - target: zip
+      arch:
+        - x64
+    - target: portable
+      arch:
+        - x64
 portable:
   artifactName: ${name}-${version}.${ext}
 mac:
