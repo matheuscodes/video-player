@@ -23,7 +23,12 @@ function resolveVideosDir(): string {
     // In dev mode look relative to the project root (where package.json lives)
     return join(app.getAppPath(), 'Videos')
   }
-  // In production the executable sits in the install root; Videos/ lives beside it
+  // electron-builder portable builds extract to a temp dir and set PORTABLE_EXECUTABLE_DIR
+  // to the folder where the user placed the .exe. Use it so Videos/ is found next to the exe.
+  if (process.env.PORTABLE_EXECUTABLE_DIR) {
+    return join(process.env.PORTABLE_EXECUTABLE_DIR, 'Videos')
+  }
+  // For zip / dir / installer targets the exe IS the real exe; its parent is the app folder.
   return join(dirname(process.execPath), 'Videos')
 }
 
