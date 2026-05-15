@@ -54,7 +54,7 @@ jobs:
           path: dist/*.zip
 
   build-mac-11:
-    runs-on: macos-13
+    runs-on: macos-15-intel
     steps:
       - uses: actions/checkout@v4
 
