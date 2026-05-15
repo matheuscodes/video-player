@@ -50,8 +50,30 @@ jobs:
           name: mac-build
           path: dist/*.zip
 
+  build-mac-11:
+    runs-on: macos-13
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build macOS 11 compatible
+        run: npm run build && npx electron-builder --mac --x64 -c.mac.minimumSystemVersion=11.0 -c.mac.artifactName=\${name}-\${version}-mac-11.\${ext}
+
+      - name: Upload macOS 11 artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: mac-11-build
+          path: dist/*mac-11*.zip
+
   release:
-    needs: [build-windows, build-mac]
+    needs: [build-windows, build-mac, build-mac-11]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -74,6 +96,12 @@ jobs:
           name: mac-build
           path: dist/mac
 
+      - name: Download macOS 11 artifact
+        uses: actions/download-artifact@v4.1.3
+        with:
+          name: mac-11-build
+          path: dist/mac-11
+
       - name: Create release
         uses: softprops/action-gh-release@v2
         with:
@@ -82,3 +110,4 @@ jobs:
           files: |
             dist/windows/*.exe
             dist/mac/*.zip
+            dist/mac-11/*.zip
