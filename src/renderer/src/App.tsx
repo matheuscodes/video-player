@@ -94,7 +94,9 @@ function App(): React.JSX.Element {
 
   // Load videos on mount
   useEffect(() => {
-    loadVideos()
+    queueMicrotask(() => {
+      void loadVideos()
+    })
   }, [loadVideos])
 
   const handleChooseFolder = useCallback(async () => {
