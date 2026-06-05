@@ -32,7 +32,6 @@ YYYY.MM.DD                          (date only, no tags)
 ```
 
 **Examples:**
-
 ```
 2024.07.04 # vacation, fireworks, summer.mp4
 2024.12.25 # family, christmas, celebration.mov
