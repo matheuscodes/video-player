@@ -23,6 +23,10 @@ export interface VideoEntry {
   url?: string
 }
 
+function labelForSource(sourceDir: string, isCustomSource: boolean): string {
+  return isCustomSource ? `Custom folder: ${sourceDir}` : `Default Videos folder: ${sourceDir}`
+}
+
 function App(): React.JSX.Element {
   const [allVideos, setAllVideos] = useState<VideoEntry[]>([])
   const [activeTags, setActiveTags] = useState<Set<string>>(new Set())
@@ -31,6 +35,8 @@ function App(): React.JSX.Element {
   const [playlistOrder, setPlaylistOrder] = useState<VideoEntry[]>([])
   const [currentVideo, setCurrentVideo] = useState<VideoEntry | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [sourceLabel, setSourceLabel] = useState('')
+  const [isCustomSource, setIsCustomSource] = useState(false)
 
   // Date range filter — stored as HTML input format (YYYY-MM-DD)
   const [startDate, setStartDate] = useState<string>('')
@@ -41,47 +47,65 @@ function App(): React.JSX.Element {
     return Array.from(new Set(allVideos.map((v) => videoDateToInput(v.date)))).sort()
   }, [allVideos])
 
+  const loadVideos = useCallback(async (sourceDir?: string): Promise<void> => {
+    setIsLoading(true)
+    try {
+      const { entries, sourceDir: resolvedSourceDir } = await window.api.listVideos(sourceDir)
+      const customSource = typeof sourceDir === 'string'
+
+      // Resolve video URLs for all entries
+      const videosWithUrls = await Promise.all(
+        entries.map(async (entry) => {
+          const url = await window.api.getVideoUrl(entry.filePath)
+          return { ...entry, url }
+        })
+      )
+
+      // Collect unique tags (sorted alphabetically)
+      const tagSet = new Set<string>()
+      for (const v of videosWithUrls) {
+        for (const tag of v.tags) tagSet.add(tag)
+      }
+      const sortedTags = Array.from(tagSet).sort()
+
+      setAllVideos(videosWithUrls)
+      setAllTags(sortedTags)
+      setActiveTags(new Set(sortedTags)) // all tags selected by default
+      setPlaylistOrder(videosWithUrls) // initial order = date-sorted from main process
+      setCurrentVideo(videosWithUrls[0] ?? null)
+      setIsCustomSource(customSource)
+      setSourceLabel(labelForSource(resolvedSourceDir, customSource))
+
+      // Initialise date range from the oldest/newest video
+      if (videosWithUrls.length > 0) {
+        const dates = videosWithUrls.map((v) => videoDateToInput(v.date)).sort()
+        setStartDate(dates[0])
+        setEndDate(dates[dates.length - 1])
+      } else {
+        setStartDate('')
+        setEndDate('')
+      }
+    } catch (err) {
+      console.error('Failed to load videos:', err)
+    } finally {
+      setIsLoading(false)
+    }
+  }, [])
+
   // Load videos on mount
   useEffect(() => {
-    async function loadVideos(): Promise<void> {
-      setIsLoading(true)
-      try {
-        const entries = await window.api.listVideos()
-
-        // Resolve video URLs for all entries
-        const videosWithUrls = await Promise.all(
-          entries.map(async (entry) => {
-            const url = await window.api.getVideoUrl(entry.filePath)
-            return { ...entry, url }
-          })
-        )
-
-        // Collect unique tags (sorted alphabetically)
-        const tagSet = new Set<string>()
-        for (const v of videosWithUrls) {
-          for (const tag of v.tags) tagSet.add(tag)
-        }
-        const sortedTags = Array.from(tagSet).sort()
-
-        setAllVideos(videosWithUrls)
-        setAllTags(sortedTags)
-        setActiveTags(new Set(sortedTags)) // all tags selected by default
-        setPlaylistOrder(videosWithUrls) // initial order = date-sorted from main process
-
-        // Initialise date range from the oldest/newest video
-        if (videosWithUrls.length > 0) {
-          const dates = videosWithUrls.map((v) => videoDateToInput(v.date)).sort()
-          setStartDate(dates[0])
-          setEndDate(dates[dates.length - 1])
-        }
-      } catch (err) {
-        console.error('Failed to load videos:', err)
-      } finally {
-        setIsLoading(false)
-      }
-    }
     loadVideos()
-  }, [])
+  }, [loadVideos])
+
+  const handleChooseFolder = useCallback(async () => {
+    const selectedDirectory = await window.api.pickVideoDirectory()
+    if (!selectedDirectory) return
+    await loadVideos(selectedDirectory)
+  }, [loadVideos])
+
+  const handleUseDefaultFolder = useCallback(async () => {
+    await loadVideos()
+  }, [loadVideos])
 
   // Derive filtered video list from the current playlist order, active tags and date range
   const filteredVideos = useMemo(() => {
@@ -146,6 +170,21 @@ function App(): React.JSX.Element {
     <div className="app-layout">
       <header className="app-header">
         <h1>🎬 Video Player</h1>
+        {!isLoading && (
+          <div className="source-controls">
+            <span className="source-label" title={sourceLabel}>
+              {sourceLabel}
+            </span>
+            <button className="btn-small" type="button" onClick={handleChooseFolder}>
+              Open folder
+            </button>
+            {isCustomSource && (
+              <button className="btn-small" type="button" onClick={handleUseDefaultFolder}>
+                Use default Videos
+              </button>
+            )}
+          </div>
+        )}
         {!isLoading && allDates.length > 1 && (
           <DateRangeBar
             allDates={allDates}

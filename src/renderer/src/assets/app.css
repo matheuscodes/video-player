@@ -45,6 +45,22 @@ body {
   letter-spacing: 0.5px;
 }
 
+.source-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.source-label {
+  color: #8f8fb0;
+  font-size: 12px;
+  max-width: 360px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .app-body {
   display: grid;
   grid-template-columns: 220px 280px 1fr;
@@ -207,7 +223,6 @@ body {
 .date-slider-input::-moz-range-thumb:hover {
   background: #c4b5fd;
 }
-
 
 .tag-sidebar {
   display: flex;
@@ -451,7 +466,9 @@ body {
   border-radius: 6px;
   font-size: 12px;
   cursor: pointer;
-  transition: background 0.15s, color 0.15s;
+  transition:
+    background 0.15s,
+    color 0.15s;
 }
 
 .btn-small:hover:not(:disabled) {
@@ -472,7 +489,9 @@ body {
   border-radius: 8px;
   font-size: 13px;
   cursor: pointer;
-  transition: background 0.15s, color 0.15s;
+  transition:
+    background 0.15s,
+    color 0.15s;
 }
 
 .btn-control:hover {
