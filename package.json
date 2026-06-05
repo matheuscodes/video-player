@@ -18,6 +18,7 @@
     "build:unpack": "npm run build && electron-builder --dir",
     "build:win": "npm run build && electron-builder --win",
     "build:mac": "npm run build && electron-builder --mac",
+    "build:mac:11": "npm run build && electron-builder --mac --x64 -c.mac.minimumSystemVersion=11.0 -c.mac.artifactName='${name}-${version}-mac-11.${ext}'",
     "build:linux": "npm run build && electron-builder --linux"
   },
   "dependencies": {
@@ -33,7 +34,7 @@
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.1.1",
-    "electron": "^39.2.6",
+    "electron": "^37.10.3",
     "electron-builder": "^26.0.12",
     "electron-vite": "^5.0.0",
     "eslint": "^9.39.1",
