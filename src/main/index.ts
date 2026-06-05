@@ -1,4 +1,4 @@
-import { app, shell, BrowserWindow, ipcMain, protocol, net } from 'electron'
+import { app, shell, BrowserWindow, ipcMain, protocol, net, dialog } from 'electron'
 import { join, extname, dirname, resolve, sep } from 'path'
 import { readdirSync, existsSync } from 'fs'
 import { pathToFileURL } from 'url'
@@ -28,8 +28,50 @@ function resolveVideosDir(): string {
   if (process.env.PORTABLE_EXECUTABLE_DIR) {
     return join(process.env.PORTABLE_EXECUTABLE_DIR, 'Videos')
   }
+  if (process.platform === 'darwin') {
+    return join(dirname(dirname(dirname(process.execPath))), 'Videos')
+  }
   // For zip / dir / installer targets the exe IS the real exe; its parent is the app folder.
   return join(dirname(process.execPath), 'Videos')
+}
+
+function isPathInsideDirectory(filePath: string, directoryPath: string): boolean {
+  const normalizedFilePath = resolve(filePath)
+  const normalizedDirectoryPath = resolve(directoryPath)
+  return (
+    normalizedFilePath === normalizedDirectoryPath ||
+    normalizedFilePath.startsWith(normalizedDirectoryPath + sep)
+  )
+}
+
+function collectVideoEntries(directoryPath: string): VideoEntry[] {
+  const entries: VideoEntry[] = []
+
+  const readDirectory = (currentDirectoryPath: string): void => {
+    const files = readdirSync(currentDirectoryPath, { withFileTypes: true })
+
+    for (const file of files) {
+      const nextPath = join(currentDirectoryPath, file.name)
+
+      if (file.isDirectory()) {
+        readDirectory(nextPath)
+        continue
+      }
+
+      if (!file.isFile()) continue
+
+      const entry = parseVideoFilename(file.name)
+      if (!entry) continue
+
+      entry.filePath = nextPath
+      entries.push(entry)
+    }
+  }
+
+  readDirectory(directoryPath)
+
+  entries.sort((a, b) => a.date.localeCompare(b.date))
+  return entries
 }
 
 /**
@@ -54,15 +96,21 @@ function transcodeToFmp4(filePath: string): Response {
 
   const ffmpegBin = resolveFfmpegPath()
   const proc = spawn(ffmpegBin, [
-    '-i', filePath,
-    '-c:v', 'libx264',
-    '-c:a', 'aac',
-    '-preset', 'ultrafast',
-    '-f', 'mp4',
+    '-i',
+    filePath,
+    '-c:v',
+    'libx264',
+    '-c:a',
+    'aac',
+    '-preset',
+    'ultrafast',
+    '-f',
+    'mp4',
     // frag_keyframe: new MP4 fragment at every keyframe → seekable stream
     // empty_moov: write a placeholder moov at the start so playback begins immediately
     // default_base_moof: improves compatibility with Chromium's MP4 demuxer
-    '-movflags', 'frag_keyframe+empty_moov+default_base_moof',
+    '-movflags',
+    'frag_keyframe+empty_moov+default_base_moof',
     'pipe:1'
   ])
 
@@ -121,6 +169,11 @@ export interface VideoEntry {
   filePath: string
   date: string
   tags: string[]
+}
+
+export interface VideoListResult {
+  entries: VideoEntry[]
+  sourceDir: string
 }
 
 /**
@@ -207,6 +260,7 @@ function createWindow(): void {
 
 app.whenReady().then(() => {
   electronApp.setAppUserModelId('com.electron.video-player')
+  const allowedVideoRoots = new Set<string>()
 
   app.on('browser-window-created', (_, window) => {
     optimizer.watchWindowShortcuts(window)
@@ -217,11 +271,13 @@ app.whenReady().then(() => {
   // MOV files are transcoded on-the-fly to fragmented H.264 MP4 via ffmpeg so that
   // files encoded with unsupported codecs (H.265/HEVC, Apple ProRes, etc.) can play
   // in Chromium without any modification to the original files.
-  const videosDir = resolveVideosDir()
   protocol.handle('localvideo', (request) => {
     const filePath = resolve(decodeURIComponent(request.url.slice('localvideo://'.length)))
-    // Reject paths that escape the Videos directory (path traversal guard)
-    if (!filePath.startsWith(videosDir + sep) && filePath !== videosDir) {
+    const isAllowedPath = Array.from(allowedVideoRoots).some((directoryPath) =>
+      isPathInsideDirectory(filePath, directoryPath)
+    )
+
+    if (!isAllowedPath) {
       return new Response('Forbidden', { status: 403 })
     }
     // Transcode MOV files on-the-fly; serve MP4 files directly
@@ -231,32 +287,45 @@ app.whenReady().then(() => {
     return net.fetch(pathToFileURL(filePath).toString(), { bypassCustomProtocolHandlers: true })
   })
 
-  // IPC: list all video files from the Videos/ folder
-  ipcMain.handle('list-videos', (): VideoEntry[] => {
-    const videosDir = resolveVideosDir()
-    if (!existsSync(videosDir)) return []
-
-    const entries: VideoEntry[] = []
+  // IPC: list all video files from the default Videos/ folder or a selected folder
+  ipcMain.handle('list-videos', (_event, sourceDir?: string): VideoListResult => {
+    const videosDir = resolve(sourceDir ?? resolveVideosDir())
     try {
-      const files = readdirSync(videosDir)
-      for (const file of files) {
-        const entry = parseVideoFilename(file)
-        if (entry) {
-          entry.filePath = join(videosDir, file)
-          entries.push(entry)
-        }
+      if (!existsSync(videosDir)) {
+        return { entries: [], sourceDir: videosDir }
+      }
+
+      allowedVideoRoots.add(videosDir)
+
+      return {
+        entries: collectVideoEntries(videosDir),
+        sourceDir: videosDir
       }
     } catch (err) {
-      console.error('Error reading Videos directory:', err)
+      console.error('Error reading video directory:', err)
+      return { entries: [], sourceDir: videosDir }
     }
+  })
 
-    // Sort by date ascending by default
-    entries.sort((a, b) => a.date.localeCompare(b.date))
-    return entries
+  ipcMain.handle('pick-video-directory', async (): Promise<string | null> => {
+    const { canceled, filePaths } = await dialog.showOpenDialog({
+      title: 'Select a video folder',
+      properties: ['openDirectory']
+    })
+
+    if (canceled || filePaths.length === 0) return null
+    return filePaths[0]
   })
 
   // IPC: convert an absolute file path to a localvideo:// URL for the renderer
   ipcMain.handle('get-video-url', (_event, filePath: string): string => {
+    if (
+      !Array.from(allowedVideoRoots).some((directoryPath) =>
+        isPathInsideDirectory(filePath, directoryPath)
+      )
+    ) {
+      throw new Error('File path is outside the allowed video directories')
+    }
     return `localvideo://${encodeURIComponent(filePath)}`
   })
 

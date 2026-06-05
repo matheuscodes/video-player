@@ -7,7 +7,7 @@ Built with **Electron**, **React**, and **TypeScript** using the **electron-vite
 
 ## Features
 
-- 📂 Reads `.mp4` and `.mov` files from a `Videos/` folder
+- 📂 Reads `.mp4` and `.mov` files from a default `Videos/` folder or any folder you choose in the app
 - 🏷️ Parses tags from filenames (`YYYY.MM.DD # tag1, tag2, tag3`)
 - ✅ Filter videos by tag (checkboxes in the sidebar)
 - 📅 Default sort by date; **Shuffle** button to randomize playlist
@@ -19,7 +19,7 @@ Built with **Electron**, **React**, and **TypeScript** using the **electron-vite
 
 ## Filename Convention
 
-Place your video files inside the `Videos/` folder.  
+Place your video files inside the default `Videos/` folder or any folder that you select from inside the app.  
 All of the following formats are supported (extension `.mp4` or `.mov`):
 
 ```
@@ -53,13 +53,13 @@ YYYY.MM.DD                          (date only, no tags)
 
 ## Tech Stack & Why
 
-| Tool | Purpose | Why chosen |
-|---|---|---|
-| **Electron** | Desktop shell | Cross-platform native wrapper; gives full file-system access |
-| **React 19** | UI library | Component-based, huge ecosystem, excellent TypeScript support |
-| **TypeScript** | Type safety | Catches bugs at compile-time, better IDE experience |
-| **Vite / electron-vite** | Build tool | Very fast HMR, first-class Electron+React integration |
-| **electron-builder** | Packaging | NSIS installer for Windows, DMG for macOS, AppImage for Linux |
+| Tool                     | Purpose       | Why chosen                                                    |
+| ------------------------ | ------------- | ------------------------------------------------------------- |
+| **Electron**             | Desktop shell | Cross-platform native wrapper; gives full file-system access  |
+| **React 19**             | UI library    | Component-based, huge ecosystem, excellent TypeScript support |
+| **TypeScript**           | Type safety   | Catches bugs at compile-time, better IDE experience           |
+| **Vite / electron-vite** | Build tool    | Very fast HMR, first-class Electron+React integration         |
+| **electron-builder**     | Packaging     | NSIS installer for Windows, DMG for macOS, AppImage for Linux |
 
 ---
 
@@ -118,7 +118,7 @@ This starts the app with hot-module replacement. Any changes to the renderer sou
 
 ### 3. Add your own videos
 
-Drop `.mp4` or `.mov` files into the `Videos/` folder following the naming convention above.  
+Drop `.mp4` or `.mov` files into the `Videos/` folder following the naming convention above, or use **Open folder** in the app to choose another directory on your disk or USB drive.  
 The app ships with a few minimal sample files for demonstration.
 
 ---
@@ -145,10 +145,10 @@ npm run build:win
 
 This produces two artifacts in `dist/`:
 
-| File | What it is | Recommended? |
-|---|---|---|
-| `VideoPlayer-1.0.0-win.zip` | Zip archive of the full app folder | ✅ **Yes – use this** |
-| `VideoPlayer-1.0.0.exe` | NSIS self-extracting portable exe | ⚠️ May be flagged by AV |
+| File                        | What it is                         | Recommended?            |
+| --------------------------- | ---------------------------------- | ----------------------- |
+| `VideoPlayer-1.0.0-win.zip` | Zip archive of the full app folder | ✅ **Yes – use this**   |
+| `VideoPlayer-1.0.0.exe`     | NSIS self-extracting portable exe  | ⚠️ May be flagged by AV |
 
 **Use the zip**: extract it anywhere, place a `Videos/` folder next to `VideoPlayer.exe`, and double-click to run.  
 Windows Defender and other AV tools are much less likely to flag a plain exe than an NSIS self-extractor.
@@ -157,6 +157,14 @@ Windows Defender and other AV tools are much less likely to flag a plain exe tha
 
 ```bash
 npm run build:mac
+```
+
+For packaged macOS builds, the default `Videos/` folder should live next to the `.app` bundle.  
+Example:
+
+```
+Video Player.app
+Videos/
 ```
 
 ### Portable unpacked folder (for USB sticks / fastest start)
@@ -199,7 +207,7 @@ VideoPlayer-win32-x64/
 4. Double-click `VideoPlayer.exe` to launch directly from the USB stick.
 
 > **Note:** Windows SmartScreen may warn about unsigned executables.  
-> Click *More info → Run anyway*. The zip-based distribution triggers this far less often than the self-extracting portable exe.
+> Click _More info → Run anyway_. The zip-based distribution triggers this far less often than the self-extracting portable exe.
 
 ---
 

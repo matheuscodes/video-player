@@ -8,8 +8,15 @@ export interface VideoEntry {
   tags: string[]
 }
 
+export interface VideoListResult {
+  entries: VideoEntry[]
+  sourceDir: string
+}
+
 const api = {
-  listVideos: (): Promise<VideoEntry[]> => ipcRenderer.invoke('list-videos'),
+  listVideos: (sourceDir?: string): Promise<VideoListResult> =>
+    ipcRenderer.invoke('list-videos', sourceDir),
+  pickVideoDirectory: (): Promise<string | null> => ipcRenderer.invoke('pick-video-directory'),
   getVideoUrl: (filePath: string): Promise<string> => ipcRenderer.invoke('get-video-url', filePath)
 }
 

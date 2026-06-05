@@ -7,8 +7,14 @@ export interface VideoEntry {
   tags: string[]
 }
 
+export interface VideoListResult {
+  entries: VideoEntry[]
+  sourceDir: string
+}
+
 export interface VideoAPI {
-  listVideos: () => Promise<VideoEntry[]>
+  listVideos: (sourceDir?: string) => Promise<VideoListResult>
+  pickVideoDirectory: () => Promise<string | null>
   getVideoUrl: (filePath: string) => Promise<string>
 }
 
