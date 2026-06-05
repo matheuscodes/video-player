@@ -66,11 +66,8 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build app
-        run: npm run build
-
-      - name: Package macOS 11 compatible artifact
-        run: npx electron-builder --mac --x64 -c.mac.minimumSystemVersion=11.0 -c.mac.artifactName=\${name}-\${version}-mac-11.\${ext}
+      - name: Build macOS 11 compatible artifact
+        run: npm run build:mac:11
 
       - name: Upload macOS 11 artifact
         uses: actions/upload-artifact@v4
